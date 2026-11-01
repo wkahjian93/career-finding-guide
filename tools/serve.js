@@ -8,7 +8,7 @@ let rows = [];
 
 function api(q) {
   if (q.op === 'submit') {
-    if (!/^[01]{178}[1-7]{12}$/.test(q.answers) || q.consent !== true) return {error: 'invalid_request'};
+    if (!/^[01]{178}[1-7]{12}$/.test(q.answers)) return {error: 'invalid_request'};
     if (!rows.some(r => r.id === q.id)) rows.unshift({id: q.id, at: new Date().toISOString(), name: q.name, contact: q.contact, age: q.age, seconds: q.seconds, answers: q.answers});
     return {ok: true};
   }

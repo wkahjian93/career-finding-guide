@@ -67,7 +67,7 @@ function submit(q) {
   var age = +q.age, answers = String(q.answers || ''), seconds = Math.max(0, Math.round(+q.seconds || 0));
   if (q.website) return {ok: true};   // hidden field only bots fill in
   if (!/^[\w-]{8,40}$/.test(id) || !name || name.length > 80 || !/^[\d+\-\s()]{7,20}$/.test(contact)) fail('invalid_request');
-  if (!(age >= 15 && age <= 90) || !ANSWER_PATTERN.test(answers) || q.consent !== true) fail('invalid_request');
+  if (!(age >= 15 && age <= 90) || !ANSWER_PATTERN.test(answers)) fail('invalid_request');
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try {
     var s = sheet();

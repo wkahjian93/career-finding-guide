@@ -59,7 +59,6 @@ function welcome() {
       <div class="field"><label for="c">Contact number 联络电话</label><input id="c" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" value="${esc(st.contact)}"></div>
       <div class="field"><label for="a">Age 年龄</label><input id="a" type="text" inputmode="numeric" maxlength="2" value="${esc(st.age)}"></div>
       <div class="trap" aria-hidden="true"><label>Website<input id="w" tabindex="-1" autocomplete="off"></label></div>
-      <label class="check"><input type="checkbox" id="ok"><span>I agree that REDEFINE, a Great Eastern Life agency team, may use my name, contact number, age and answers to review my career fit and contact me about it. Only its leaders can see them. I can ask the person who sent me this link to correct or delete my details.<span class="zh">我同意 REDEFINE（Great Eastern Life 代理团队）使用我的姓名、电话、年龄和答案，以评估职涯匹配度并与我联系。只有团队主管可以查看。我可以请发送此链接的人更正或删除我的资料。</span></span></label>
       <p class="err" id="e" role="alert"></p>
       <button class="btn primary">${Object.keys(st.answers).length ? 'Continue 继续' : 'Start 开始'}</button>
     </form></div>`;
@@ -69,8 +68,7 @@ function welcome() {
     if (!name) return e.textContent = 'Please enter your name. 请填写姓名。';
     if (!/^[\d+\-\s()]{7,20}$/.test(contact)) return e.textContent = 'Please enter a valid contact number. 请填写正确的电话号码。';
     if (!/^\d{2}$/.test(age) || +age < 15) return e.textContent = 'Please enter your age. 请填写年龄。';
-    if (!document.getElementById('ok').checked) return e.textContent = 'Please tick the box to continue. 请勾选同意后继续。';
-    Object.assign(st, {name, contact, age, website: document.getElementById('w').value, consent: true, page: Math.max(0, st.page)});
+    Object.assign(st, {name, contact, age, website: document.getElementById('w').value, page: Math.max(0, st.page)});
     started = Date.now(); save(); render(); scrollTo(0, 0);
   };
 }
@@ -139,7 +137,7 @@ async function finish() {
   const answers = CFG_ITEMS.map((q, i) => st.answers[i]).join('');
   try {
     const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({
-      op: 'submit', id: st.id, name: st.name, contact: st.contact, age: +st.age, seconds: Math.round(spent() / 1000), answers, consent: true, website: st.website || ''
+      op: 'submit', id: st.id, name: st.name, contact: st.contact, age: +st.age, seconds: Math.round(spent() / 1000), answers, website: st.website || ''
     })});
     const j = await r.json();
     if (j.error) throw j.error;
