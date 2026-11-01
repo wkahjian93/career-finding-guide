@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CFG Leader View</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#23395b">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="pattern">
 <main class="wrap wide" id="app"></main>
 <script src="config.js"></script>
 <script src="questions.js"></script>
@@ -43,8 +44,8 @@ const when = iso => new Date(iso).toLocaleString('en-GB', {timeZone: 'Asia/Kuala
 const chip = b => `<span class="chip ${b}">${esc(T(CFG_BANDS[b]))}</span>`;
 
 function gate(msg) {
-  app.innerHTML = `<form class="stack" id="f" style="max-width:360px;margin:40px auto">
-    <div class="brand">RE<span>DEFINE</span></div><h1>CFG Leader View</h1>
+  app.innerHTML = `<form class="card stack gate" id="f">
+    <img class="logo big" src="logo.png" alt="REDEFINE"><img class="team" src="team.jpg" alt="The REDEFINE team"><h1>CFG Leader View</h1>
     ${API ? `<div class="field"><label for="c">Leader code</label><input id="c" type="password" autocomplete="current-password"></div>
     <p class="err" role="alert">${msg || ''}</p><button class="btn primary">Sign in</button>` : `<p class="notice">The results server is not connected yet.</p>`}
   </form>`;
@@ -69,8 +70,8 @@ async function open() {
 }
 
 function header() {
-  return `<div class="row noprint" style="margin-bottom:16px">
-    <div class="brand grow">RE<span>DEFINE</span> CFG</div>
+  return `<div class="card row noprint leadbar">
+    <img class="logo" src="logo.png" alt="REDEFINE"><span class="grow"></span>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="list" aria-selected="${view.tab === 'list'}">${L('Candidates', '候选人')}</button>
       <button class="tab" role="tab" data-tab="share" aria-selected="${view.tab === 'share'}">${L('Share', '分享')}</button>
@@ -103,7 +104,7 @@ function bindRows() { app.querySelectorAll('[data-id]').forEach(b => b.onclick =
 function rows() {
   const f = view.q.trim().toLowerCase();
   const shown = people.filter(p => !f || p.name.toLowerCase().includes(f) || p.contact.includes(f));
-  if (!shown.length) return `<p class="muted">${people.length ? L('No match.', '没有符合的结果。') : L('No candidates yet. Share the link or QR code to start.', '还没有候选人。分享链接或二维码即可开始。')}</p>`;
+  if (!shown.length) return `<p class="card muted">${people.length ? L('No match.', '没有符合的结果。') : L('No candidates yet. Share the link or QR code to start.', '还没有候选人。分享链接或二维码即可开始。')}</p>`;
   return shown.map(p => `<button class="person" data-id="${esc(p.id)}">
     <span class="grow"><span class="name">${esc(p.name)}</span><span class="muted small" style="display:block">${L('Age', '年龄')} ${esc(p.age)} · ${esc(when(p.at))}</span></span>
     <span style="text-align:right"><span class="code">${p.score.code}</span><br>${chip(p.comment.band)}</span>
@@ -112,8 +113,9 @@ function rows() {
 
 function list() {
   return `<div class="stack">
+    <div class="card stack"><img class="team" src="team.jpg" alt="The REDEFINE team">
     <div class="row"><h1 class="grow">${L('Candidates', '候选人')} (${people.length})</h1><button class="btn" id="refresh">${L('Refresh', '刷新')}</button></div>
-    <div class="field"><input id="q" type="search" placeholder="${L('Search name or phone', '搜索姓名或电话')}" aria-label="${L('Search name or phone', '搜索姓名或电话')}" value="${esc(view.q)}"></div>
+    <div class="field"><input id="q" type="search" placeholder="${L('Search name or phone', '搜索姓名或电话')}" aria-label="${L('Search name or phone', '搜索姓名或电话')}" value="${esc(view.q)}"></div></div>
     <div class="stack" id="rows">${rows()}</div>
   </div>`;
 }
