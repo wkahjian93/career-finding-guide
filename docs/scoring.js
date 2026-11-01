@@ -38,12 +38,11 @@ function cfgScore(answers, items) {
   const bySection = {1: empty(), 2: empty(), 3: empty(), 4: empty()};
   const maxBySection = {1: empty(), 2: empty(), 3: empty(), 4: empty()};
   let ones = 0, yesno = 0;
-  const ratings = [];
   items.forEach((q, i) => {
     const v = +answers[i];
     bySection[q.section][q.type] += v;
     maxBySection[q.section][q.type] += q.kind === 'scale' ? 7 : 1;
-    if (q.kind === 'yesno') { yesno++; ones += v; } else ratings.push(v);
+    if (q.kind === 'yesno') { yesno++; ones += v; }
   });
   const types = {}, order = [];
   'RIASEC'.split('').forEach(t => {
@@ -64,8 +63,7 @@ function cfgScore(answers, items) {
     match: Math.max.apply(null, CFG_RULES.targets.map(t => iachan(code, t))),
     consistency: hexDistance(order[0], order[1]),   // 1 adjacent, 2 alternate, 3 opposite
     range: pcts[0] - pcts[5],
-    oneShare: yesno ? ones / yesno : 0,
-    sameRatings: ratings.length > 0 && ratings.every(r => r === ratings[0])
+    oneShare: yesno ? ones / yesno : 0
   };
 }
 
@@ -146,9 +144,8 @@ function cfgComment(s, meta) {
   if (s.code.indexOf('E') < 0) add(c.ask, 'How would you feel about meeting new people every week and asking for their time?', '每周认识新朋友并主动约时间，你有什么感觉？');
   if (s.code.indexOf('C') < 0) add(c.ask, 'How do you keep track of your commitments and follow-ups today?', '你现在如何记录自己的承诺和跟进事项？');
 
-  if (s.oneShare >= r.extremeShare) add(c.flags, `${Math.round(s.oneShare * 100)}% of yes/no answers were 1. This candidate may have answered without reading.`, `${Math.round(s.oneShare * 100)}% 的是非题选了 1，对方可能没有细读题目。`);
-  if (s.oneShare <= 1 - r.extremeShare) add(c.flags, `Only ${Math.round(s.oneShare * 100)}% of yes/no answers were 1. This candidate may have answered without reading.`, `只有 ${Math.round(s.oneShare * 100)}% 的是非题选了 1，对方可能没有细读题目。`);
-  if (s.sameRatings) add(c.flags, 'Every Section 4 rating is the same, although the form asks them not to do this.', '第四部分的评分全部相同，尽管表格已提醒避免这样做。');
+  if (s.oneShare >= r.extremeShare) add(c.flags, `${Math.round(s.oneShare * 100)}% of answers in Sections 1 to 3 were Like or Yes. This candidate may have answered without reading.`, `第一至第三部分有 ${Math.round(s.oneShare * 100)}% 选了“喜欢”或“是”，对方可能没有细读题目。`);
+  if (s.oneShare <= 1 - r.extremeShare) add(c.flags, `Only ${Math.round(s.oneShare * 100)}% of answers in Sections 1 to 3 were Like or Yes. This candidate may have answered without reading.`, `第一至第三部分只有 ${Math.round(s.oneShare * 100)}% 选了“喜欢”或“是”，对方可能没有细读题目。`);
   if (meta && meta.seconds > 0 && meta.seconds < r.fastSeconds) add(c.flags, `Completed in ${(meta.seconds / 60).toFixed(1)} min, which is very fast for 190 questions.`, `只用 ${(meta.seconds / 60).toFixed(1)} 分钟完成 190 题，速度过快。`);
   if (s.tiedThird) add(c.flags, `${s.code[2]} and ${s.tiedThird} are tied for third place, so the third letter could be either.`, `${s.code[2]} 和 ${s.tiedThird} 并列第三，第三个字母两者皆可。`);
   return {band, ...c};

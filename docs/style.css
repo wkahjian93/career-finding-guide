@@ -59,6 +59,7 @@ p { margin: 0; }
 .opts.seven { grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .opt { border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--r); min-height: 44px; padding: 6px 4px; font-size: 14px; line-height: 1.2; }
 .opt b { display: block; font-size: 16px; }
+.opt.taken { opacity: .35; }
 .opt[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .scale-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); margin-top: 4px; }
 

@@ -6,9 +6,9 @@ const CFG_TYPES = ['R', 'I', 'A', 'S', 'E', 'C'];
 const CFG_SECTIONS = [
   {
     id: 1, name: 'Activities', zh: '活动', kind: 'yesno',
-    intro: 'Choose 1 for activities you would like to do. Choose 0 for activities you dislike or feel indifferent to.',
-    introZh: '选 1 表示你喜欢的活动，选 0 表示你不喜欢或不感兴趣的活动。',
-    yes: 'Like', yesZh: '喜欢', no: 'Not for me', noZh: '不喜欢',
+    intro: 'Choose Like for activities you would like to do. Choose Dislike for activities you dislike or feel indifferent to.',
+    introZh: '选“喜欢”表示你喜欢的活动，选“不喜欢”表示你不喜欢或不感兴趣的活动。',
+    yes: 'Like', yesZh: '喜欢', no: 'Dislike', noZh: '不喜欢',
     groups: {
       R: [['Repair cars', '修理汽车'], ['Build things with wood', '做木工'], ['Drive a truck or tractor', '驾驶货车或拖拉机'], ['Fix mechanical things', '修理机器'], ['Use metal working or machine tools', '使用金工机床'], ['Take a woodworking course', '修读木工课程'], ['Work on a motorcycle', '修理电单车'], ['Fix electrical things', '修理电器'], ['Take an auto mechanic course', '修读汽车机械课程']],
       I: [['Read scientific books or magazines', '阅读科学书刊杂志'], ['Work in a laboratory', '在实验室工作'], ['Work on a scientific project', '参与科研工作'], ['Read specialist subjects on my own', '自发阅读专家论著'], ['Solve math or chess puzzles', '解答数学或棋类游戏难题'], ['Take a physics course', '修读物理课程'], ['Take a chemistry course', '修读化学课程'], ['Take a geometry course', '修读几何课程'], ['Take a biology course', '修读生物课程']],
@@ -20,9 +20,9 @@ const CFG_SECTIONS = [
   },
   {
     id: 2, name: 'Competencies', zh: '能力', kind: 'yesno',
-    intro: 'Choose 1 for things you can already do well or competently. Choose 0 for things you have never done or can only do poorly.',
-    introZh: '选 1 代表你有能力做或已经办得很好的事，选 0 代表你从来没有做过或办得很差的事。',
-    yes: 'Can do', yesZh: '做得到', no: 'Cannot yet', noZh: '做不到',
+    intro: 'Choose Yes for things you can already do well or competently. Choose No for things you have never done or can only do poorly.',
+    introZh: '选“是”代表你有能力做或已经办得很好的事，选“否”代表你从来没有做过或办得很差的事。',
+    yes: 'Yes', yesZh: '是', no: 'No', noZh: '否',
     groups: {
       R: [['I know how to use a voltmeter', '我会使用电压计'], ['I have operated power tools such as a drill press, grinder or sewing machine', '我会使用电动工具如电钻、磨床或缝纫机'], ['I can refinish varnished or stained furniture or woodwork', '我能翻新陈旧或污染的家具'], ['I can read blueprints', '我能看蓝图'], ['I can repair furniture', '我能维修家具'], ['I can make mechanical drawings', '我会机械制图'], ['I can make simple repairs on a TV set', '我会做简单的电视修理'], ['I can make simple plumbing repairs', '我会做简单的排水管修理']],
       I: [['I understand how a vacuum tube works', '我明白真空管的原理'], ['I understand the “half life” of a radioactive element', '我明白放射性元素的半衰期'], ['I can use logarithm tables', '我会使用对数表'], ['I can use a microscope', '我会使用显微镜'], ['I can identify three constellations of stars', '我能辨认三个星座'], ['I can describe the function of white blood cells', '我能叙述白血球的功能'], ['I can interpret simple chemical formulas', '我能解释简单的化学方程式'], ['I understand why man-made satellites do not fall to earth', '我知道为什么人造卫星不会掉下来'], ['I have participated in a science fair or contest', '我曾参加过科学博览或竞赛']],
@@ -34,9 +34,9 @@ const CFG_SECTIONS = [
   },
   {
     id: 3, name: 'Occupations', zh: '职业', kind: 'yesno',
-    intro: 'This is about your feelings toward different occupations. Do not worry about whether you have the qualifications. Choose 1 if it appeals to you. Choose 0 if you dislike it or find it uninteresting.',
-    introZh: '这里收集你对各项职业的感受和态度，不必考虑你是否具有相关的资格。选 1 表示该工作对你有吸引力，选 0 表示你不喜欢或不感兴趣。',
-    yes: 'Appeals', yesZh: '有吸引力', no: 'Not for me', noZh: '不感兴趣',
+    intro: 'This is about your feelings toward different occupations. Do not worry about whether you have the qualifications. Choose Like if it appeals to you. Choose Dislike if you dislike it or find it uninteresting.',
+    introZh: '这里收集你对各项职业的感受和态度，不必考虑你是否具有相关的资格。选“喜欢”表示该工作对你有吸引力，选“不喜欢”表示你不喜欢或不感兴趣。',
+    yes: 'Like', yesZh: '喜欢', no: 'Dislike', noZh: '不喜欢',
     groups: {
       R: [['Airplane mechanic', '飞机技工'], ['Auto mechanic', '汽车技工'], ['Carpenter', '木匠'], ['Bulldozer operator', '推土机司机'], ['Surveyor', '调查员或测量员'], ['Construction inspector', '工地督察员'], ['Radio operator', '无线电通讯员'], ['Petrol station worker', '加油站工人'], ['Tree surgeon', '树木医生'], ['Lorry driver', '货车司机'], ['Machinist', '机械师'], ['Engineer', '工程师']],
       I: [['Meteorologist', '气象员'], ['Biologist', '生物学家'], ['Astronomer', '天文学家'], ['Medical laboratory technician', '医药化验室技工'], ['Zoologist', '动物学家'], ['Chemist', '化学家'], ['Independent research scientist', '独立研究科学家'], ['Physicist', '物理学家'], ['Writer of scientific articles', '科技文章作者'], ['Editor of scientific articles', '科技刊物编辑'], ['Botanist', '植物学家'], ['Scientific research worker', '科研工作者']],
@@ -48,8 +48,8 @@ const CFG_SECTIONS = [
   },
   {
     id: 4, name: 'Self-estimates', zh: '自我评估', kind: 'scale',
-    intro: 'Rate yourself on each trait compared with people of your age. 1 is lowest and 7 is highest. Try not to give every trait the same rating.',
-    introZh: '与同年龄的人比较，评估自己属于哪一等级。最差=1，最强=7。尽量避免在不同的项目给自己打同样的分数。',
+    intro: 'Rate yourself on each trait compared with people of your age. 1 is lowest and 7 is highest.',
+    introZh: '与同年龄的人比较，评估自己属于哪一等级。最差=1，最强=7。',
     pages: [
       {name: 'Ability', zh: '才能', items: [['R', 'Mechanical ability', '机械才能'], ['I', 'Scientific ability', '科学知识'], ['A', 'Artistic ability', '艺术才华'], ['S', 'Teaching ability', '教学能力'], ['E', 'Sales ability', '推销能力'], ['C', 'Clerical ability', '文书能力']]},
       {name: 'Skill', zh: '技能', items: [['R', 'Manual skill', '手艺'], ['I', 'Math ability', '计算能力'], ['A', 'Musical ability', '音乐才华'], ['S', 'Friendliness', '友善程度'], ['E', 'Managerial skills', '管理技能'], ['C', 'Office skills', '文员事务技能']]}

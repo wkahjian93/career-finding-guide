@@ -79,10 +79,11 @@ function page() {
   const p = PAGES[st.page], s = p.section, done = Object.keys(st.answers).length;
   const buttons = q => s.kind === 'yesno'
     ? `<div class="opts">
-        <button type="button" class="opt" data-q="${q.at}" data-v="1" aria-pressed="${st.answers[q.at] === 1}"><b>1</b>${s.yes} ${s.yesZh}</button>
-        <button type="button" class="opt" data-q="${q.at}" data-v="0" aria-pressed="${st.answers[q.at] === 0}"><b>0</b>${s.no} ${s.noZh}</button></div>`
+        <button type="button" class="opt" data-q="${q.at}" data-v="1" aria-pressed="${st.answers[q.at] === 1}">${s.yes} ${s.yesZh}</button>
+        <button type="button" class="opt" data-q="${q.at}" data-v="0" aria-pressed="${st.answers[q.at] === 0}">${s.no} ${s.noZh}</button></div>`
     : `<div class="opts seven">${[1, 2, 3, 4, 5, 6, 7].map(v => `<button type="button" class="opt" data-q="${q.at}" data-v="${v}" aria-pressed="${st.answers[q.at] === v}" aria-label="${v} / 7"><b>${v}</b></button>`).join('')}</div>
-       <div class="scale-ends"><span>Lowest 最差</span><span>Highest 最强</span></div>`;
+       <div class="scale-ends"><span>Lowest 最差</span><span>Highest 最强</span></div>
+       <p class="err" id="h${q.at}" role="alert"></p>`;
   app.innerHTML = `<div class="top">
       <div class="row small muted"><span class="grow">Section ${s.id} of 4 · ${s.name} ${s.zh}</span><span>${done} / ${CFG_ITEMS.length}</span></div>
       <div class="bar"><i style="width:${done / CFG_ITEMS.length * 100}%"></i></div>
@@ -90,7 +91,7 @@ function page() {
     <div class="stack">
       ${p.first ? `<div class="card small">${esc(s.intro)}<span class="zh">${esc(s.introZh)}</span></div>` : ''}
       <div class="card">
-        <p class="small muted" style="margin-bottom:12px">Part ${p.part} of ${p.parts} 第 ${p.part} / ${p.parts} 组</p>
+        <p class="small muted" style="margin-bottom:12px">Part ${p.part} of ${p.parts} 第 ${p.part} / ${p.parts} 组${s.kind === 'scale' ? '<br>Use each number only once in this group. Tap a chosen number again to clear it.<br>每个数字在这一组只能用一次。再按一次已选的数字可取消。' : ''}</p>
         ${p.items.map(q => `<div class="q" id="q${q.at}"><div class="qt">${esc(q.en)}<span class="zh">${esc(q.zh)}</span></div>${buttons(q)}</div>`).join('')}
       </div>
       <p class="err" id="e" role="alert"></p>
@@ -99,15 +100,28 @@ function page() {
         <button type="button" class="btn primary grow" id="next">${st.page === PAGES.length - 1 ? 'Submit 提交' : 'Next 下一步'}</button>
       </div>
     </div>`;
-  app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
-    const q = +b.dataset.q; st.answers[q] = +b.dataset.v;
-    b.parentNode.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-pressed', o === b));
-    document.getElementById('q' + q).classList.remove('missing');
+  const sync = () => {
+    app.querySelectorAll('.opt').forEach(o => {
+      const q = +o.dataset.q, v = +o.dataset.v;
+      o.setAttribute('aria-pressed', st.answers[q] === v);
+      if (s.kind === 'scale') o.classList.toggle('taken', p.items.some(i => i.at !== q && st.answers[i.at] === v));
+    });
     const count = Object.keys(st.answers).length;
     app.querySelector('.top span:last-child').textContent = count + ' / ' + CFG_ITEMS.length;
     app.querySelector('.bar i').style.width = count / CFG_ITEMS.length * 100 + '%';
-    keep();
+  };
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const q = +b.dataset.q, v = +b.dataset.v, hint = document.getElementById('h' + q);
+    if (s.kind === 'scale') {
+      const other = p.items.find(i => i.at !== q && st.answers[i.at] === v);
+      if (other) { hint.textContent = `${v} is already used for ${other.en}. Choose another number. ${v} 已用于${other.zh}，请选其他数字。`; return; }
+      hint.textContent = '';
+    }
+    if (s.kind === 'scale' && st.answers[q] === v) delete st.answers[q]; else st.answers[q] = v;
+    document.getElementById('q' + q).classList.remove('missing');
+    sync(); keep();
   });
+  sync();
   document.getElementById('back').onclick = () => { st.page--; keep(); render(); scrollTo(0, 0); };
   document.getElementById('next').onclick = () => {
     const miss = p.items.filter(q => !(q.at in st.answers));
