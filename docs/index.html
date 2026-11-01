@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Career Finding Guide</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#23395b">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="pattern">
 <main class="wrap" id="app"></main>
 <script src="config.js"></script>
 <script src="questions.js"></script>
@@ -45,15 +46,17 @@ function render() {
 }
 
 function closed() {
-  app.innerHTML = `<div class="stack" style="margin-top:24px"><div class="brand">RE<span>DEFINE</span></div><h1>Career Finding Guide</h1><p class="notice">This form is not open yet. Please check with the person who sent you the link.<br>表格尚未开放，请联系发送链接给你的人。</p></div>`;
+  app.innerHTML = `<div class="card stack masthead" style="margin-top:24px"><div class="brand">RE<span>DEFINE</span></div><h1>Career Finding Guide</h1><p class="notice">This form is not open yet. Please check with the person who sent you the link.<br>表格尚未开放，请联系发送链接给你的人。</p></div>`;
 }
 
 function welcome() {
-  app.innerHTML = `<div class="stack" style="margin-top:8px">
-    <div class="brand">RE<span>DEFINE</span></div>
-    <div><h1>Career Finding Guide</h1><span class="zh">职涯探索指南</span></div>
-    <p>Discover which kinds of work suit your interests and strengths. There are no right or wrong answers, so answer honestly. It takes about 10 minutes.</p>
-    <span class="zh">了解哪些工作适合你的兴趣和强项。答案没有对错，请诚实作答。约需 10 分钟。</span>
+  app.innerHTML = `<div class="stack hero">
+    <div class="card stack masthead">
+      <img src="banner.svg" alt="">
+      <div class="brand">RE<span>DEFINE</span></div>
+      <div><h1>Career Finding Guide</h1><span class="zh">职涯探索指南</span></div>
+      <p>Discover which kinds of work suit your interests and strengths. There are no right or wrong answers, so answer honestly. It takes about 10 minutes.<span class="zh">了解哪些工作适合你的兴趣和强项。答案没有对错，请诚实作答。约需 10 分钟。</span></p>
+    </div>
     <form class="card stack" id="f" novalidate>
       <div class="field"><label for="n">Name 姓名</label><input id="n" autocomplete="name" maxlength="80" value="${esc(st.name)}"></div>
       <div class="field"><label for="c">Contact number 联络电话</label><input id="c" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" value="${esc(st.contact)}"></div>
@@ -133,7 +136,7 @@ function page() {
 }
 
 async function finish() {
-  app.innerHTML = `<div class="stack" style="margin-top:24px"><h2>Sending your answers…</h2><span class="zh">正在提交…</span></div>`;
+  app.innerHTML = `<div class="card stack masthead" style="margin-top:24px"><h2>Sending your answers…</h2><span class="zh">正在提交…</span></div>`;
   const answers = CFG_ITEMS.map((q, i) => st.answers[i]).join('');
   try {
     const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({
@@ -142,12 +145,12 @@ async function finish() {
     const j = await r.json();
     if (j.error) throw j.error;
     clear();
-    app.innerHTML = `<div class="stack" style="margin-top:24px"><div class="brand">RE<span>DEFINE</span></div>
+    app.innerHTML = `<div class="card stack masthead" style="margin-top:24px"><img src="banner.svg" alt=""><div class="brand">RE<span>DEFINE</span></div>
       <h1>Thank you, ${esc(st.name)}</h1><span class="zh">谢谢你完成职涯探索指南。</span>
       <p>Your answers have been received. We will go through your results with you in a career conversation.</p>
       <span class="zh">我们已收到你的答案，稍后会与你一起讨论结果。</span></div>`;
   } catch (e) {
-    app.innerHTML = `<div class="stack" style="margin-top:24px"><h2>Your answers were not sent</h2><span class="zh">答案尚未提交。</span>
+    app.innerHTML = `<div class="card stack" style="margin-top:24px"><h2>Your answers were not sent</h2><span class="zh">答案尚未提交。</span>
       <p>They are still saved on this phone. Check your connection and try again.</p><span class="zh">答案仍保存在此手机上，请检查网络后重试。</span>
       <button class="btn primary" id="retry">Try again 重试</button></div>`;
     document.getElementById('retry').onclick = finish;
