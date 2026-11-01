@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CFG Leader View</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap wide" id="app"></main>
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script src="scoring.js"></script>
+<script>
+const API = (window.CFG_CONFIG || {}).api;
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const mem = {
+  get: k => { try { return sessionStorage.getItem(k) || localStorage.getItem(k); } catch (e) { return null; } },
+  code: v => { try { v ? sessionStorage.setItem('cfg.code', v) : sessionStorage.removeItem('cfg.code'); } catch (e) {} },
+  lang: v => { try { localStorage.setItem('cfg.lang', v); } catch (e) {} }
+};
+let code = mem.get('cfg.code') || '', lang = mem.get('cfg.lang') || 'en', people = [], view = {tab: 'list', id: null, q: ''};
+const L = (en, zh) => lang === 'zh' ? zh : en;
+const T = pair => pair[lang === 'zh' ? 1 : 0];
+const LINK = new URL('./', location.href).href;
+
+async function post(body) {
+  let r;
+  try { r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({code}, body))}); }
+  catch (e) { throw 'network'; }
+  const j = await r.json();
+  if (j.error) throw j.error;
+  return j;
+}
+function enrich(p) {
+  p.score = cfgScore(p.answers, CFG_ITEMS);
+  p.comment = cfgComment(p.score, {seconds: p.seconds});
+  return p;
+}
+const when = iso => new Date(iso).toLocaleString('en-GB', {timeZone: 'Asia/Kuala_Lumpur', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+const chip = b => `<span class="chip ${b}">${esc(T(CFG_BANDS[b]))}</span>`;
+
+function gate(msg) {
+  app.innerHTML = `<form class="stack" id="f" style="max-width:360px;margin:40px auto">
+    <div class="brand">RE<span>DEFINE</span></div><h1>CFG Leader View</h1>
+    ${API ? `<div class="field"><label for="c">Leader code</label><input id="c" type="password" autocomplete="current-password"></div>
+    <p class="err" role="alert">${msg || ''}</p><button class="btn primary">Sign in</button>` : `<p class="notice">The results server is not connected yet.</p>`}
+  </form>`;
+  if (!API) return;
+  document.getElementById('f').onsubmit = async ev => {
+    ev.preventDefault();
+    code = document.getElementById('c').value.trim();
+    const b = ev.target.querySelector('button'); b.disabled = true; b.textContent = 'Checking…';
+    await open();
+  };
+}
+
+async function open() {
+  try {
+    const r = await post({op: 'list'});
+    people = r.candidates.map(enrich);
+    mem.code(code); render();
+  } catch (e) {
+    code = ''; mem.code('');
+    gate(e === 'unauthorized' ? 'That code is not right.' : e === 'locked' ? 'Too many wrong tries. Wait 15 minutes.' : 'Could not reach the results server. Check your connection.');
+  }
+}
+
+function header() {
+  return `<div class="row noprint" style="margin-bottom:16px">
+    <div class="brand grow">RE<span>DEFINE</span> CFG</div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="list" aria-selected="${view.tab === 'list'}">${L('Candidates', '候选人')}</button>
+      <button class="tab" role="tab" data-tab="share" aria-selected="${view.tab === 'share'}">${L('Share', '分享')}</button>
+    </div>
+    <button class="lang" id="lang">${lang === 'zh' ? 'EN' : '中文'}</button>
+  </div>`;
+}
+
+function render() {
+  const person = view.id && people.find(p => p.id === view.id);
+  app.innerHTML = header() + (view.tab === 'share' ? share() : person ? detail(person) : list());
+  app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { view.tab = b.dataset.tab; view.id = null; render(); });
+  document.getElementById('lang').onclick = () => { lang = lang === 'zh' ? 'en' : 'zh'; mem.lang(lang); render(); };
+  app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { view.id = b.dataset.id; render(); scrollTo(0, 0); });
+  const on = (i, f) => { const e = document.getElementById(i); if (e) e.onclick = f; };
+  on('back', () => { view.id = null; render(); });
+  on('print', () => print());
+  on('refresh', async () => { document.getElementById('refresh').disabled = true; await open(); });
+  on('copy', async () => { await navigator.clipboard.writeText(LINK); document.getElementById('copy').textContent = L('Copied', '已复制'); });
+  on('del', async () => {
+    if (!confirm(L('Delete this candidate permanently?', '确定永久删除这位候选人？'))) return;
+    await post({op: 'delete', id: view.id});
+    people = people.filter(p => p.id !== view.id); view.id = null; render();
+  });
+  const q = document.getElementById('q');
+  if (q) q.oninput = () => { view.q = q.value; document.getElementById('rows').innerHTML = rows(); bindRows(); };
+}
+function bindRows() { app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { view.id = b.dataset.id; render(); scrollTo(0, 0); }); }
+
+function rows() {
+  const f = view.q.trim().toLowerCase();
+  const shown = people.filter(p => !f || p.name.toLowerCase().includes(f) || p.contact.includes(f));
+  if (!shown.length) return `<p class="muted">${people.length ? L('No match.', '没有符合的结果。') : L('No candidates yet. Share the link or QR code to start.', '还没有候选人。分享链接或二维码即可开始。')}</p>`;
+  return shown.map(p => `<button class="person" data-id="${esc(p.id)}">
+    <span class="grow"><span class="name">${esc(p.name)}</span><span class="muted small" style="display:block">${L('Age', '年龄')} ${esc(p.age)} · ${esc(when(p.at))}</span></span>
+    <span style="text-align:right"><span class="code">${p.score.code}</span><br>${chip(p.comment.band)}</span>
+  </button>`).join('');
+}
+
+function list() {
+  return `<div class="stack">
+    <div class="row"><h1 class="grow">${L('Candidates', '候选人')} (${people.length})</h1><button class="btn" id="refresh">${L('Refresh', '刷新')}</button></div>
+    <div class="field"><input id="q" type="search" placeholder="${L('Search name or phone', '搜索姓名或电话')}" aria-label="${L('Search name or phone', '搜索姓名或电话')}" value="${esc(view.q)}"></div>
+    <div class="stack" id="rows">${rows()}</div>
+  </div>`;
+}
+
+function hexagon(s) {
+  const c = 150, r = 100, pt = (i, k) => {
+    const a = (-90 + i * 60) * Math.PI / 180;
+    return [+(c + r * k * Math.cos(a)).toFixed(1), +(c + r * k * Math.sin(a)).toFixed(1)];
+  };
+  const poly = f => CFG_RING.split('').map((t, i) => pt(i, f(t)).join(',')).join(' ');
+  const grid = [.25, .5, .75, 1].map(k => `<polygon points="${poly(() => k)}" fill="none" stroke="var(--rule)"/>`).join('');
+  const labels = CFG_RING.split('').map((t, i) => { const [x, y] = pt(i, 1.24); return `<text x="${x}" y="${y}" class="${'ESC'.includes(t) ? 't' : ''}">${t} ${s.types[t].pct}%</text>`; }).join('');
+  const label = CFG_RING.split('').map(t => t + ' ' + s.types[t].pct + '%').join(', ');
+  return `<svg class="hex" viewBox="0 0 300 300" role="img" aria-label="${L('Hexagon profile', '六边形结果')}: ${label}">${grid}<polygon points="${poly(t => Math.max(.03, s.types[t].pct / 100))}" fill="var(--stamp)" fill-opacity=".22" stroke="var(--stamp)" stroke-width="2"/>${labels}</svg>`;
+}
+
+function marks(s) {
+  const types = CFG_RING.split(''), top = s.order.slice(0, 3);
+  const sum = (o, id) => types.reduce((n, t) => n + o[id][t], 0);
+  const row = id => {
+    const sec = CFG_SECTIONS[id - 1];
+    return `<tr><td>${id}. ${L(sec.name, sec.zh)}</td>${types.map(t => `<td>${s.bySection[id][t]}<small>/${s.maxBySection[id][t]}</small></td>`).join('')}<td><b>${sum(s.bySection, id)}</b><small>/${sum(s.maxBySection, id)}</small></td></tr>`;
+  };
+  const total = types.reduce((n, t) => n + s.types[t].total, 0), max = types.reduce((n, t) => n + s.types[t].max, 0);
+  return `<div class="tablewrap"><table>
+    <thead><tr><th>${L('Section', '部分')}</th>${types.map(t => `<th>${t}</th>`).join('')}<th>${L('Total', '总分')}</th></tr></thead>
+    <tbody>${[1, 2, 3, 4].map(row).join('')}
+    <tr class="total"><td>${L('Total', '总分')}</td>${types.map(t => `<td class="${top.includes(t) ? 'top3' : ''}">${s.types[t].total}<small>/${s.types[t].max}</small></td>`).join('')}<td>${total}<small>/${max}</small></td></tr>
+    <tr><td>%</td>${types.map(t => `<td>${s.types[t].pct}%</td>`).join('')}<td></td></tr>
+    <tr><td>${L('Interest (1+3)', '兴趣（1+3）')}</td>${types.map(t => `<td>${s.types[t].interest}%</td>`).join('')}<td></td></tr>
+    <tr><td>${L('Ability (2+4)', '能力（2+4）')}</td>${types.map(t => `<td>${s.types[t].ability}%</td>`).join('')}<td></td></tr>
+    </tbody></table></div>`;
+}
+
+function picks(p) {
+  return CFG_SECTIONS.map(sec => {
+    const items = CFG_ITEMS.map((q, i) => Object.assign({v: +p.answers[i]}, q)).filter(q => q.section === sec.id);
+    const body = CFG_RING.split('').map(t => {
+      const list = items.filter(q => q.type === t && (q.kind === 'scale' || q.v === 1));
+      const words = list.map(q => esc(L(q.en, q.zh)) + (q.kind === 'scale' ? ` (${q.v})` : '')).join('; ');
+      return `<p><b>${t} ${esc(T(CFG_NAMES[t]))}:</b> ${words || '-'}</p>`;
+    }).join('');
+    return `<details><summary>${sec.id}. ${L(sec.name, sec.zh)}</summary><div class="ticks">${body}</div></details>`;
+  }).join('');
+}
+
+const bullets = list => `<ul class="c">${list.map(x => `<li>${esc(T(x))}</li>`).join('')}</ul>`;
+
+function detail(p) {
+  const s = p.score, c = p.comment, digits = p.contact.replace(/\D/g, ''), wa = digits.startsWith('0') ? '6' + digits : digits;
+  const cons = {1: L('Adjacent, consistent', '相邻，方向一致'), 2: L('One apart, fairly consistent', '相隔一型，尚算一致'), 3: L('Opposite, mixed interests', '相对，兴趣分歧')}[s.consistency] || L('Same', '相同');
+  return `<div class="stack">
+    <button class="btn noprint" id="back" style="align-self:flex-start">${L('Back', '返回')}</button>
+    <div class="card result-head">
+      <div class="stack">
+        <div><h1>${esc(p.name)}</h1>
+        <p class="muted small">${L('Age', '年龄')} ${esc(p.age)} · <a href="https://wa.me/${esc(wa)}" style="color:inherit">${esc(p.contact)}</a> · ${esc(when(p.at))}</p></div>
+        <div class="row"><span class="code" style="font-size:28px">${s.code}</span>${chip(c.band)}</div>
+        <table>
+          <tr><td>${L('Agent match (0-28)', '顾问匹配度（0-28）')}</td><td><b>${s.match}</b></td></tr>
+          <tr><td>${L('Consistency', '一致性')}</td><td>${cons}</td></tr>
+          <tr><td>${L('Differentiation', '区分度')}</td><td>${s.range} ${L('points', '分')}</td></tr>
+        </table>
+      </div>
+      ${hexagon(s)}
+    </div>
+    ${c.flags.length ? `<div class="notice"><b>${L('Check these first', '请先留意')}</b>${bullets(c.flags)}</div>` : ''}
+    <div class="card stack"><h2>${L('Marks by section', '各部分分数')}</h2>${marks(s)}</div>
+    <div class="card stack">
+      <h2>${L('Comment', '评语')}</h2>
+      ${c.summary.map(x => `<p>${esc(T(x))}</p>`).join('')}
+      <h3>${L('Strengths', '优势')}</h3>${bullets(c.strengths)}
+      ${c.watch.length ? `<h3>${L('Watch-outs', '留意事项')}</h3>${bullets(c.watch)}` : ''}
+      <h3>${L('Ask in the conversation', '对谈时可以问')}</h3>${bullets(c.ask)}
+      <p class="muted small">${L('This shows interests and self-rated ability, not proven performance. Use it to guide a conversation, not as the only reason to accept or reject someone.', '此结果反映兴趣和自我评估的能力，并不代表实际表现。请用来引导对谈，不要作为录取或拒绝的唯一依据。')}</p>
+    </div>
+    <div class="card stack"><h2>${L('Their answers', '对方的答案')}</h2><p class="muted small">${L('Items answered 1, and Section 4 ratings.', '选 1 的项目及第四部分评分。')}</p>${picks(p)}</div>
+    <div class="row noprint">
+      <button class="btn" id="print">${L('Print or save PDF', '打印或存为 PDF')}</button>
+      <span class="grow"></span>
+      <button class="btn" id="del" style="color:var(--err)">${L('Delete', '删除')}</button>
+    </div>
+  </div>`;
+}
+
+function share() {
+  return `<div class="card stack">
+    <h1>${L('Candidate link', '候选人链接')}</h1>
+    <p class="muted">${L('Candidates do not see their score. Results appear here after they submit.', '候选人看不到分数。提交后结果会显示在这里。')}</p>
+    <img class="qr" src="qr.png" alt="${L('QR code for the Career Finding Guide', '职涯探索指南二维码')}">
+    <p class="link">${esc(LINK)}</p>
+    <div class="row"><button class="btn primary" id="copy">${L('Copy link', '复制链接')}</button><a class="btn" href="qr.png" download="CFG-QR.png" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">${L('Download QR', '下载二维码')}</a></div>
+  </div>`;
+}
+
+code ? open() : gate();
+</script>
+</body>
+</html>

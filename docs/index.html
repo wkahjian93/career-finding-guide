@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Career Finding Guide</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+const API = (window.CFG_CONFIG || {}).api;
+const KEY = 'cfg.draft';
+const app = document.getElementById('app');
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
+const clear = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+const id = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+
+/* One page per group of questions, so nothing long sits on a phone screen. */
+const PAGES = [];
+{
+  let n = 0;
+  CFG_SECTIONS.forEach(s => {
+    const parts = s.kind === 'yesno' ? CFG_TYPES.map(t => s.groups[t].map(q => ({en: q[0], zh: q[1]})))
+      : s.pages.map(p => p.items.map(q => ({en: q[1], zh: q[2]})));
+    parts.forEach((items, i) => { PAGES.push({section: s, first: i === 0, part: i + 1, parts: parts.length, items: items.map(q => Object.assign(q, {at: n++}))}); });
+  });
+}
+
+let st = load() || {id: id(), page: -1, name: '', contact: '', age: '', answers: {}, ms: 0};
+let started = Date.now();
+function spent() { return st.ms + (Date.now() - started); }
+function keep() { st.ms = spent(); started = Date.now(); save(); }
+
+function render() {
+  if (!API) return closed();
+  if (st.page < 0) return welcome();
+  if (st.page >= PAGES.length) return finish();
+  page();
+}
+
+function closed() {
+  app.innerHTML = `<div class="stack" style="margin-top:24px"><div class="brand">RE<span>DEFINE</span></div><h1>Career Finding Guide</h1><p class="notice">This form is not open yet. Please check with the person who sent you the link.<br>表格尚未开放，请联系发送链接给你的人。</p></div>`;
+}
+
+function welcome() {
+  app.innerHTML = `<div class="stack" style="margin-top:8px">
+    <div class="brand">RE<span>DEFINE</span></div>
+    <div><h1>Career Finding Guide</h1><span class="zh">职涯探索指南</span></div>
+    <p>Discover which kinds of work suit your interests and strengths. There are no right or wrong answers, so answer honestly. It takes about 10 minutes.</p>
+    <span class="zh">了解哪些工作适合你的兴趣和强项。答案没有对错，请诚实作答。约需 10 分钟。</span>
+    <form class="card stack" id="f" novalidate>
+      <div class="field"><label for="n">Name 姓名</label><input id="n" autocomplete="name" maxlength="80" value="${esc(st.name)}"></div>
+      <div class="field"><label for="c">Contact number 联络电话</label><input id="c" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" value="${esc(st.contact)}"></div>
+      <div class="field"><label for="a">Age 年龄</label><input id="a" type="text" inputmode="numeric" maxlength="2" value="${esc(st.age)}"></div>
+      <div class="trap" aria-hidden="true"><label>Website<input id="w" tabindex="-1" autocomplete="off"></label></div>
+      <label class="check"><input type="checkbox" id="ok"><span>I agree that REDEFINE, a Great Eastern Life agency team, may use my name, contact number, age and answers to review my career fit and contact me about it. Only its leaders can see them. I can ask the person who sent me this link to correct or delete my details.<span class="zh">我同意 REDEFINE（Great Eastern Life 代理团队）使用我的姓名、电话、年龄和答案，以评估职涯匹配度并与我联系。只有团队主管可以查看。我可以请发送此链接的人更正或删除我的资料。</span></span></label>
+      <p class="err" id="e" role="alert"></p>
+      <button class="btn primary">${Object.keys(st.answers).length ? 'Continue 继续' : 'Start 开始'}</button>
+    </form></div>`;
+  document.getElementById('f').onsubmit = ev => {
+    ev.preventDefault();
+    const name = n.value.trim(), contact = c.value.trim(), age = a.value.trim(), e = document.getElementById('e');
+    if (!name) return e.textContent = 'Please enter your name. 请填写姓名。';
+    if (!/^[\d+\-\s()]{7,20}$/.test(contact)) return e.textContent = 'Please enter a valid contact number. 请填写正确的电话号码。';
+    if (!/^\d{2}$/.test(age) || +age < 15) return e.textContent = 'Please enter your age. 请填写年龄。';
+    if (!document.getElementById('ok').checked) return e.textContent = 'Please tick the box to continue. 请勾选同意后继续。';
+    Object.assign(st, {name, contact, age, website: document.getElementById('w').value, consent: true, page: Math.max(0, st.page)});
+    started = Date.now(); save(); render(); scrollTo(0, 0);
+  };
+}
+
+function page() {
+  const p = PAGES[st.page], s = p.section, done = Object.keys(st.answers).length;
+  const buttons = q => s.kind === 'yesno'
+    ? `<div class="opts">
+        <button type="button" class="opt" data-q="${q.at}" data-v="1" aria-pressed="${st.answers[q.at] === 1}"><b>1</b>${s.yes} ${s.yesZh}</button>
+        <button type="button" class="opt" data-q="${q.at}" data-v="0" aria-pressed="${st.answers[q.at] === 0}"><b>0</b>${s.no} ${s.noZh}</button></div>`
+    : `<div class="opts seven">${[1, 2, 3, 4, 5, 6, 7].map(v => `<button type="button" class="opt" data-q="${q.at}" data-v="${v}" aria-pressed="${st.answers[q.at] === v}" aria-label="${v} / 7"><b>${v}</b></button>`).join('')}</div>
+       <div class="scale-ends"><span>Lowest 最差</span><span>Highest 最强</span></div>`;
+  app.innerHTML = `<div class="top">
+      <div class="row small muted"><span class="grow">Section ${s.id} of 4 · ${s.name} ${s.zh}</span><span>${done} / ${CFG_ITEMS.length}</span></div>
+      <div class="bar"><i style="width:${done / CFG_ITEMS.length * 100}%"></i></div>
+    </div>
+    <div class="stack">
+      ${p.first ? `<div class="card small">${esc(s.intro)}<span class="zh">${esc(s.introZh)}</span></div>` : ''}
+      <div class="card">
+        <p class="small muted" style="margin-bottom:12px">Part ${p.part} of ${p.parts} 第 ${p.part} / ${p.parts} 组</p>
+        ${p.items.map(q => `<div class="q" id="q${q.at}"><div class="qt">${esc(q.en)}<span class="zh">${esc(q.zh)}</span></div>${buttons(q)}</div>`).join('')}
+      </div>
+      <p class="err" id="e" role="alert"></p>
+      <div class="row">
+        <button type="button" class="btn" id="back">Back 上一步</button>
+        <button type="button" class="btn primary grow" id="next">${st.page === PAGES.length - 1 ? 'Submit 提交' : 'Next 下一步'}</button>
+      </div>
+    </div>`;
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const q = +b.dataset.q; st.answers[q] = +b.dataset.v;
+    b.parentNode.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-pressed', o === b));
+    document.getElementById('q' + q).classList.remove('missing');
+    const count = Object.keys(st.answers).length;
+    app.querySelector('.top span:last-child').textContent = count + ' / ' + CFG_ITEMS.length;
+    app.querySelector('.bar i').style.width = count / CFG_ITEMS.length * 100 + '%';
+    keep();
+  });
+  document.getElementById('back').onclick = () => { st.page--; keep(); render(); scrollTo(0, 0); };
+  document.getElementById('next').onclick = () => {
+    const miss = p.items.filter(q => !(q.at in st.answers));
+    miss.forEach(q => document.getElementById('q' + q.at).classList.add('missing'));
+    if (miss.length) {
+      document.getElementById('e').textContent = 'Please answer every question. 请回答所有问题。';
+      return document.getElementById('q' + miss[0].at).scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+    st.page++; keep(); render(); scrollTo(0, 0);
+  };
+}
+
+async function finish() {
+  app.innerHTML = `<div class="stack" style="margin-top:24px"><h2>Sending your answers…</h2><span class="zh">正在提交…</span></div>`;
+  const answers = CFG_ITEMS.map((q, i) => st.answers[i]).join('');
+  try {
+    const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({
+      op: 'submit', id: st.id, name: st.name, contact: st.contact, age: +st.age, seconds: Math.round(spent() / 1000), answers, consent: true, website: st.website || ''
+    })});
+    const j = await r.json();
+    if (j.error) throw j.error;
+    clear();
+    app.innerHTML = `<div class="stack" style="margin-top:24px"><div class="brand">RE<span>DEFINE</span></div>
+      <h1>Thank you, ${esc(st.name)}</h1><span class="zh">谢谢你完成职涯探索指南。</span>
+      <p>Your answers have been received. We will go through your results with you in a career conversation.</p>
+      <span class="zh">我们已收到你的答案，稍后会与你一起讨论结果。</span></div>`;
+  } catch (e) {
+    app.innerHTML = `<div class="stack" style="margin-top:24px"><h2>Your answers were not sent</h2><span class="zh">答案尚未提交。</span>
+      <p>They are still saved on this phone. Check your connection and try again.</p><span class="zh">答案仍保存在此手机上，请检查网络后重试。</span>
+      <button class="btn primary" id="retry">Try again 重试</button></div>`;
+    document.getElementById('retry').onclick = finish;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
